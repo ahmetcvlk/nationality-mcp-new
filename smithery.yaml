@@ -1,0 +1,32 @@
+name: nationality-mcp
+description: "MCP Server for nationality prediction based on names using Nationalize.io API"
+version: "1.0.0"
+
+# Build configuration
+build:
+  dockerfile: Dockerfile
+  context: .
+
+# Runtime configuration
+runtime:
+  command: ["python3", "-u", "server.py"]
+  environment:
+    PYTHONUNBUFFERED: "1"
+    PYTHONDONTWRITEBYTECODE: "1"
+
+# MCP specific configuration
+mcp:
+  transport: stdio
+  capabilities:
+    tools: true
+    resources: false
+    prompts: false
+
+# Health check (optional)
+health:
+  enabled: false
+
+# Resource limits (optional)
+resources:
+  memory: "256Mi"
+  cpu: "0.5"
