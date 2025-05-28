@@ -11,7 +11,7 @@ import logging
 from typing import Any, Sequence
 
 import httpx
-from mcp.server import Server
+from mcp.server import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import (
@@ -70,20 +70,20 @@ async def handle_list_tools() -> ListToolsResult:
 @server.call_tool()
 async def handle_call_tool(request: CallToolRequest) -> CallToolResult:
     """Araç çağrılarını işle"""
-    
+
     if request.name != "nationalize":
         raise ValueError(f"Bilinmeyen araç: {request.name}")
-    
+
     # Parametreleri al ve validate et
     if not request.arguments or "name" not in request.arguments:
         raise ValueError("'name' parametresi gerekli")
-    
+
     name = request.arguments["name"]
     if not isinstance(name, str) or not name.strip():
         raise ValueError("'name' parametresi boş olmayan bir string olmalı")
-    
+
     name = name.strip()
-    
+
     try:
         # Nationalize.io API'sine istek at
         async with httpx.AsyncClient() as client:
@@ -93,38 +93,38 @@ async def handle_call_tool(request: CallToolRequest) -> CallToolResult:
                 timeout=10.0
             )
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             # API yanıtını validate et
             if "name" not in data or "country" not in data:
                 raise ValueError("API'den beklenmeyen yanıt formatı")
-            
+
             # Yanıtı parse et
             nationality_response = NationalizeResponse(**data)
-            
+
             # Sonuçları formatla
             if not nationality_response.country:
                 result_text = f"'{name}' ismi için milliyet tahmini bulunamadı."
             else:
                 result_text = f"'{name}' ismi için milliyet tahminleri:\n\n"
-                
+
                 # Tahminleri olasılığa göre sırala
                 sorted_predictions = sorted(
-                    nationality_response.country, 
-                    key=lambda x: x.probability, 
+                    nationality_response.country,
+                    key=lambda x: x.probability,
                     reverse=True
                 )
-                
+
                 for i, prediction in enumerate(sorted_predictions, 1):
                     percentage = prediction.probability * 100
                     result_text += f"{i}. {prediction.country_id}: %{percentage:.1f}\n"
-                
+
                 # En yüksek olasılıklı tahmini vurgula
                 if sorted_predictions:
                     best_prediction = sorted_predictions[0]
                     result_text += f"\nEn olası milliyet: {best_prediction.country_id} (%{best_prediction.probability * 100:.1f})"
-            
+
             return CallToolResult(
                 content=[
                     TextContent(
@@ -133,7 +133,7 @@ async def handle_call_tool(request: CallToolRequest) -> CallToolResult:
                     )
                 ]
             )
-            
+
     except httpx.TimeoutException:
         raise ValueError("API isteği zaman aşımına uğradı")
     except httpx.HTTPStatusError as e:
@@ -149,7 +149,7 @@ async def handle_call_tool(request: CallToolRequest) -> CallToolResult:
 async def main():
     """Ana fonksiyon - MCP server'ı başlat"""
     logger.info("Nationalize MCP Server başlatılıyor...")
-    
+
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
@@ -158,7 +158,11 @@ async def main():
                 server_name="nationalize-mcp",
                 server_version="1.0.0",
                 capabilities=server.get_capabilities(
-                    notification_options=None,
+                    notification_options=NotificationOptions(
+                        tools_changed=False,
+                        prompts_changed=False,
+                        resources_changed=False,
+                    ),
                     experimental_capabilities=None,
                 ),
             ),
