@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/ahmetcvlk-nationality-mcp-new-badge.png)](https://mseep.ai/app/ahmetcvlk-nationality-mcp-new)
+
 # Nationalize.io MCP Server
 
 Bu MCP (Model Context Protocol) server, [Nationalize.io API](https://nationalize.io)'sini kullanarak verilen isimlere göre milliyet tahmini yapar.
